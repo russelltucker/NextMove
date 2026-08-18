@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.nextmove.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.nextmove.app'
+        minSdk 26
+        targetSdk 36
+        versionCode 9
+        versionName '1.8'
+    }
+}
