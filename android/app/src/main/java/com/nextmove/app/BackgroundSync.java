@@ -18,7 +18,6 @@ public final class BackgroundSync {
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .setPeriodic(FIFTEEN_MINUTES)
                 .setPersisted(true)
-                .setBackoffCriteria(30000L, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
                 .build();
         scheduler.schedule(job);
     }
@@ -30,7 +29,6 @@ public final class BackgroundSync {
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .setMinimumLatency(1000L)
                 .setOverrideDeadline(30000L)
-                .setBackoffCriteria(30000L, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
                 .build();
         scheduler.schedule(job);
     }
@@ -41,5 +39,17 @@ public final class BackgroundSync {
             scheduler.cancel(JOB_ID);
             scheduler.cancel(JOB_ID + 1);
         }
+    }
+
+    public static void scheduleSafely(Context context) {
+        try { schedule(context); } catch (Throwable ignored) { }
+    }
+
+    public static void runSoonSafely(Context context) {
+        try { runSoon(context); } catch (Throwable ignored) { }
+    }
+
+    public static void cancelSafely(Context context) {
+        try { cancel(context); } catch (Throwable ignored) { }
     }
 }
