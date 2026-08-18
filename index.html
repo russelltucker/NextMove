@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1c75dd" />
+  <meta name="description" content="NextMove synced project checklist with due dates, priorities, next actions and reminders." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>NextMove</title>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-lockup">
+      <img class="brand-logo" src="icons/nextmove-logo.png" alt="" aria-hidden="true" />
+      <div>
+        <h1>NextMove</h1>
+        <p>Know what's next. Keep projects moving.</p>
+      </div>
+    </div>
+    <button id="notifyBtn" class="button secondary small">Enable reminders</button>
+  </header>
+
+  <nav class="tabs" aria-label="Main navigation">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="projects">Projects</button>
+    <button class="tab" data-tab="tasks">Tasks</button>
+    <button class="tab" data-tab="settings">Sync & Backup</button>
+  </nav>
+
+  <main>
+    <section id="dashboard" class="view active">
+      <div class="summary-grid">
+        <article class="summary-card danger"><span id="overdueCount">0</span><small>Overdue</small></article>
+        <article class="summary-card warning"><span id="todayCount">0</span><small>Due today</small></article>
+        <article class="summary-card info"><span id="upcomingCount">0</span><small>Next 7 days</small></article>
+        <article class="summary-card"><span id="openCount">0</span><small>Open tasks</small></article>
+      </div>
+
+      <div class="section-heading">
+        <div><h2>What needs attention</h2><p>Overdue first, because apparently deadlines are still a thing.</p></div>
+        <button class="button primary" id="quickTaskBtn">+ Task</button>
+      </div>
+      <div id="attentionList" class="stack"></div>
+
+      <div class="section-heading compact"><div><h2>Next actions</h2><p>The next physical step for each active project.</p></div></div>
+      <div id="nextActionsList" class="stack"></div>
+    </section>
+
+    <section id="projects" class="view">
+      <div class="section-heading">
+        <div><h2>Projects</h2><p>One place for the goal, notes, and what happens next.</p></div>
+        <button class="button primary" id="addProjectBtn">+ Project</button>
+      </div>
+      <div id="projectList" class="stack"></div>
+    </section>
+
+    <section id="tasks" class="view">
+      <div class="section-heading">
+        <div><h2>Tasks</h2><p>Filter the pile before the pile filters you.</p></div>
+        <button class="button primary" id="addTaskBtn">+ Task</button>
+      </div>
+      <div class="filters card">
+        <select id="taskProjectFilter" aria-label="Filter by project"><option value="all">All projects</option></select>
+        <select id="taskStatusFilter" aria-label="Filter by status">
+          <option value="open">Open</option>
+          <option value="all">All</option>
+          <option value="overdue">Overdue</option>
+          <option value="today">Due today</option>
+          <option value="completed">Completed</option>
+        </select>
+        <select id="taskPriorityFilter" aria-label="Filter by priority">
+          <option value="all">All priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <input id="taskAssigneeFilter" aria-label="Filter by assignee" placeholder="Assignee contains..." />
+      </div>
+      <div id="taskList" class="stack"></div>
+    </section>
+
+    <section id="settings" class="view">
+      <div class="section-heading compact"><div><h2>Cloud sync</h2><p>Use the same private NextMove data on your PC and Android phone.</p></div></div>
+      <div class="card backup-card sync-card">
+        <div class="sync-title-row"><h3>Supabase connection</h3><span id="syncStatus" class="sync-status offline">Not connected</span></div>
+        <p>Paste your Supabase Project URL and publishable/anon key once on each device. Your password is used only to sign in and is not saved by NextMove.</p>
+        <label>Project URL<input id="cloudUrl" type="url" placeholder="https://your-project.supabase.co" autocomplete="url" /></label>
+        <label>Publishable / anon key<input id="cloudKey" type="password" placeholder="sb_publishable_... or anon key" autocomplete="off" /></label>
+        <label>Email<input id="cloudEmail" type="email" placeholder="you@example.com" autocomplete="username" /></label>
+        <label>Password<input id="cloudPassword" type="password" placeholder="Password" autocomplete="current-password" /></label>
+        <div class="sync-actions"><button id="cloudSaveBtn" class="button secondary">Save connection</button><button id="cloudSignUpBtn" class="button secondary">Create account</button><button id="cloudSignInBtn" class="button primary">Sign in</button><button id="cloudSyncBtn" class="button secondary">Sync now</button><button id="cloudSignOutBtn" class="button ghost">Sign out</button></div>
+        <p class="sync-meta" id="syncMeta">Local data is still available offline. After sign-in, the newest copy wins.</p>
+      </div>
+      <div class="section-heading compact"><div><h2>Backup & restore</h2><p>Keep a manual backup too, because trusting one system forever is how people learn exciting lessons.</p></div></div>
+      <div class="card backup-card">
+        <h3>Backup</h3>
+        <p>Download a JSON backup containing all projects and tasks.</p>
+        <button id="exportBtn" class="button primary">Export backup</button>
+      </div>
+      <div class="card backup-card">
+        <h3>Restore</h3>
+        <p>Restore a backup you exported earlier. Existing data will be replaced.</p>
+        <input id="importFile" type="file" accept="application/json,.json" />
+        <button id="importBtn" class="button secondary">Restore backup</button>
+      </div>
+      <div class="card backup-card">
+        <h3>Reminder behavior</h3>
+        <p id="reminderHelp"><strong>Android build:</strong> reminders are scheduled with Android and can fire while NextMove is closed. Open NextMove once after restarting the phone so it can resync task reminders.</p>
+        <button id="testNotifyBtn" class="button secondary">Send test reminder</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="projectDialog">
+    <form id="projectForm" method="dialog" class="dialog-form">
+      <div class="dialog-title"><h2 id="projectDialogTitle">New project</h2><button type="button" class="icon-btn close-dialog" aria-label="Close">×</button></div>
+      <input type="hidden" id="projectId" />
+      <label>Project name<input id="projectName" required maxlength="100" placeholder="e.g. Rebuild extrusion cooling system" /></label>
+      <div class="form-row">
+        <label>Priority<select id="projectPriority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></label>
+        <label>Status<select id="projectStatus"><option value="active">Active</option><option value="waiting">Waiting</option><option value="on-hold">On hold</option><option value="completed">Completed</option></select></label>
+      </div>
+      <label>Target date<input id="projectDueDate" type="date" /></label>
+      <label>Next action<textarea id="projectNextAction" rows="3" placeholder="What is the very next thing that needs to happen?"></textarea></label>
+      <label>Comments / notes<textarea id="projectComments" rows="5" placeholder="Calls made, parts ordered, decisions, blockers, measurements, random useful stuff..."></textarea></label>
+      <div class="dialog-actions"><button type="button" class="button ghost close-dialog">Cancel</button><button type="submit" class="button primary">Save project</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="taskDialog">
+    <form id="taskForm" method="dialog" class="dialog-form">
+      <div class="dialog-title"><h2 id="taskDialogTitle">New task</h2><button type="button" class="icon-btn close-dialog" aria-label="Close">×</button></div>
+      <input type="hidden" id="taskId" />
+      <label>Task<input id="taskTitle" required maxlength="140" placeholder="e.g. Order replacement pressure gauge" /></label>
+      <label>Project<select id="taskProject"><option value="">No project</option></select></label>
+      <label>Assignee <span class="optional">(optional)</span><input id="taskAssignee" maxlength="80" placeholder="Leave blank, or enter a person/team" /></label>
+      <div class="form-row">
+        <label>Priority<select id="taskPriority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></label>
+        <label>Due date & time<input id="taskDueAt" type="datetime-local" /></label>
+      </div>
+      <div class="form-row">
+        <label>First reminder<select id="taskReminderBefore">
+          <option value="-1">No reminder</option><option value="0">At due time</option><option value="15">15 minutes before</option><option value="60">1 hour before</option><option value="240">4 hours before</option><option value="1440" selected>1 day before</option><option value="4320">3 days before</option><option value="10080">7 days before</option>
+        </select></label>
+        <label>Repeat until done<select id="taskRepeat">
+          <option value="0">Don't repeat</option><option value="60">Every hour</option><option value="120">Every 2 hours</option><option value="240">Every 4 hours</option><option value="480" selected>Every 8 hours</option><option value="720">Every 12 hours</option><option value="1440">Every day</option><option value="2880">Every 2 days</option><option value="10080">Every week</option>
+        </select></label>
+      </div>
+      <label>Task notes<textarea id="taskNotes" rows="4" placeholder="Details, phone numbers, measurements, links, etc."></textarea></label>
+      <div class="dialog-actions"><button type="button" class="button ghost close-dialog">Cancel</button><button type="submit" class="button primary">Save task</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+  <script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('service-worker.js').catch(console.warn);</script>
+</body>
+</html>

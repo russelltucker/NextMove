@@ -1,0 +1,47 @@
+NextMove Sync v1.6
+==================
+
+WHAT THIS VERSION DOES
+- Same NextMove projects/tasks on your PC web app and Android APK.
+- Assignee is OPTIONAL.
+- Local-first: NextMove still works offline.
+- When signed in, the newest copy syncs through Supabase.
+- Android keeps native task reminders after tasks have synced to the phone.
+- Manual JSON backup/restore is still included.
+
+ONE-TIME SUPABASE SETUP
+1. Create a free Supabase project at supabase.com.
+2. In the Supabase SQL Editor, run: supabase/setup.sql
+3. In Supabase, copy your Project URL and Publishable key (or legacy anon key).
+4. Open NextMove > Sync & Backup on your PC or Android phone.
+5. Paste the Project URL and key, enter your email/password, then tap Create account.
+6. If Supabase asks for email confirmation, confirm the email and then Sign in.
+7. Use the same Project URL/key/email/password on your other device.
+
+PWA / WEB SETUP
+The contents of the pwa folder are static files. Host them on any HTTPS static host
+(GitHub Pages, Netlify, Cloudflare Pages, etc.). HTTPS is required for full PWA install
+and service-worker behavior. Once hosted, open the URL on your PC and choose your
+browser's Install App / Create shortcut option.
+
+ANDROID
+Install NextMove_v1.6_Sync_Android16.apk over v1.5 if it is currently installed.
+Do NOT uninstall first if you want to keep the local data already on the phone.
+After install, open Sync & Backup and sign in. NextMove will compare the local and cloud
+copy and use the newest edit.
+
+SYNC BEHAVIOR
+- Edits save locally immediately.
+- Cloud upload is queued about a second after an edit.
+- Cloud sync also runs on startup, when the app comes back into view, when internet
+  connectivity returns, and periodically while the app is open.
+- If PC and phone both change data before either sees the other's change, the copy with
+  the newest timestamp wins. This is intentionally simple for a single-user app.
+- The Android APK schedules native reminders based on the tasks currently synced to the phone.
+  A task created on the PC cannot create an Android alarm until the Android app has synced it.
+
+SECURITY
+- The Supabase publishable/anon key is stored on each device; that key is intended for client apps.
+- Your password is NOT saved by NextMove.
+- Login tokens are saved locally so you stay signed in.
+- Supabase Row Level Security restricts the sync row to the signed-in user's own user ID.
