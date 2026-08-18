@@ -3,6 +3,7 @@ package com.nextmove.app;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -11,6 +12,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
+import android.webkit.JsResult;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
@@ -22,13 +25,39 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
 
-        // Bring up the UI first. Background services must never be able to prevent
-        // the user from opening NextMove.
         WebView webView = new WebView(this);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
+
+        // WebChromeClient is required for JavaScript alert()/confirm() dialogs.
+        // Without it, destructive actions such as Delete Project can appear to do nothing.
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("NextMove")
+                        .setMessage(message)
+                        .setPositiveButton("OK", (dialog, which) -> result.confirm())
+                        .setOnCancelListener(dialog -> result.cancel())
+                        .show();
+                return true;
+            }
+
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("NextMove")
+                        .setMessage(message)
+                        .setPositiveButton("Delete", (dialog, which) -> result.confirm())
+                        .setNegativeButton("Cancel", (dialog, which) -> result.cancel())
+                        .setOnCancelListener(dialog -> result.cancel())
+                        .show();
+                return true;
+            }
+        });
+
         webView.addJavascriptInterface(this, "Android");
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
@@ -37,7 +66,6 @@ public class MainActivity extends Activity {
             createNotificationChannel();
         } catch (Throwable ignored) { }
 
-        // Only schedule native background sync when Supabase has actually been configured.
         if (hasBackgroundSyncConfig()) {
             BackgroundSync.scheduleSafely(this);
         }
