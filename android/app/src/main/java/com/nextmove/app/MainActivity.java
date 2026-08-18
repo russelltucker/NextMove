@@ -8,6 +8,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
@@ -20,9 +21,9 @@ public class MainActivity extends Activity {
     @Override
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
-        createNotificationChannel();
-        BackgroundSync.schedule(this);
 
+        // Bring up the UI first. Background services must never be able to prevent
+        // the user from opening NextMove.
         WebView webView = new WebView(this);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -31,16 +32,35 @@ public class MainActivity extends Activity {
         webView.addJavascriptInterface(this, "Android");
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
+
+        try {
+            createNotificationChannel();
+        } catch (Throwable ignored) { }
+
+        // Only schedule native background sync when Supabase has actually been configured.
+        if (hasBackgroundSyncConfig()) {
+            BackgroundSync.scheduleSafely(this);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        BackgroundSync.runSoon(this);
+        if (hasBackgroundSyncConfig()) {
+            BackgroundSync.runSoonSafely(this);
+        }
+    }
+
+    private boolean hasBackgroundSyncConfig() {
+        SharedPreferences prefs = getSharedPreferences("nextmove_sync", MODE_PRIVATE);
+        return !prefs.getString("url", "").isEmpty()
+                && !prefs.getString("key", "").isEmpty()
+                && !prefs.getString("session", "").isEmpty();
     }
 
     private void createNotificationChannel() {
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (manager == null) return;
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "NextMove reminders", NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription("Upcoming and overdue task reminders");
         manager.createNotificationChannel(channel);
@@ -48,37 +68,47 @@ public class MainActivity extends Activity {
 
     @JavascriptInterface
     public void requestNotifications() {
-        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST);
+        try {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST);
+        } catch (Throwable ignored) { }
     }
 
     @JavascriptInterface
     public void schedule(String id, String title, String body, String first, String interval) {
-        scheduleNative(Long.parseLong(first), Long.parseLong(interval), this, id, title, body);
+        try {
+            scheduleNative(Long.parseLong(first), Long.parseLong(interval), this, id, title, body);
+        } catch (Throwable ignored) { }
     }
 
     @JavascriptInterface
-    public void cancel(String id) { cancelNative(this, id); }
+    public void cancel(String id) {
+        try { cancelNative(this, id); } catch (Throwable ignored) { }
+    }
 
     @JavascriptInterface
     public void test() {
-        ReminderReceiver.showNotification(this, "NextMove", "Test reminder. The nagging machinery is operational.", "nextmove-test");
+        try {
+            ReminderReceiver.showNotification(this, "NextMove", "Test reminder. The nagging machinery is operational.", "nextmove-test");
+        } catch (Throwable ignored) { }
     }
 
     @JavascriptInterface
     public void configureBackgroundSync(String url, String key, String sessionJson) {
         getSharedPreferences("nextmove_sync", MODE_PRIVATE).edit()
-                .putString("url", url)
-                .putString("key", key)
-                .putString("session", sessionJson)
+                .putString("url", url == null ? "" : url.trim())
+                .putString("key", key == null ? "" : key.trim())
+                .putString("session", sessionJson == null ? "" : sessionJson)
                 .apply();
-        BackgroundSync.schedule(this);
-        BackgroundSync.runSoon(this);
+        if (hasBackgroundSyncConfig()) {
+            BackgroundSync.scheduleSafely(this);
+            BackgroundSync.runSoonSafely(this);
+        }
     }
 
     @JavascriptInterface
     public void disableBackgroundSync() {
         getSharedPreferences("nextmove_sync", MODE_PRIVATE).edit().clear().apply();
-        BackgroundSync.cancel(this);
+        BackgroundSync.cancelSafely(this);
     }
 
     public static void scheduleNative(long triggerAtMillis, long intervalMillis, Context context,
@@ -91,7 +121,9 @@ public class MainActivity extends Activity {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, id.hashCode(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+        if (alarmManager != null) {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+        }
     }
 
     public static void cancelNative(Context context, String id) {
@@ -99,7 +131,7 @@ public class MainActivity extends Activity {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, id.hashCode(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.cancel(pendingIntent);
+        if (alarmManager != null) alarmManager.cancel(pendingIntent);
         pendingIntent.cancel();
     }
 }
