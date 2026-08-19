@@ -4,29 +4,16 @@ android {
     namespace 'com.nextmove.app'
     compileSdk 36
 
-    signingConfigs {
-        release {
-            storeFile file('../signing/nextmove-release.keystore')
-            storePassword 'nextmove2026'
-            keyAlias 'nextmove'
-            keyPassword 'nextmove2026'
-        }
-    }
-
     defaultConfig {
-        applicationId 'com.nextmove.app'
+        applicationId 'com.russelltucker.nextmove'
         minSdk 26
         targetSdk 36
-        versionCode 11
-        versionName '1.8.2'
+        versionCode 1
+        versionName '2.0.0'
     }
 
     buildTypes {
-        debug {
-            signingConfig signingConfigs.release
-        }
         release {
-            signingConfig signingConfigs.release
             minifyEnabled false
         }
     }
