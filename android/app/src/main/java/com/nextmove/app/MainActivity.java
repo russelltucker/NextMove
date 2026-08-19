@@ -22,19 +22,18 @@ import android.webkit.WebView;
 public class MainActivity extends Activity {
     public static final String CHANNEL_ID = "nextmove_reminders";
     private static final int NOTIFICATION_PERMISSION_REQUEST = 1001;
+    private WebView webView;
 
     @Override
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
 
-        WebView webView = new WebView(this);
+        webView = new WebView(this);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
 
-        // WebChromeClient is required for JavaScript alert()/confirm() dialogs.
-        // Without it, destructive actions such as Delete Project can appear to do nothing.
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
@@ -64,21 +63,16 @@ public class MainActivity extends Activity {
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
 
-        try {
-            createNotificationChannel();
-        } catch (Throwable ignored) { }
+        try { createNotificationChannel(); } catch (Throwable ignored) { }
 
-        if (hasBackgroundSyncConfig()) {
-            BackgroundSync.scheduleSafely(this);
-        }
+        if (hasBackgroundSyncConfig()) BackgroundSync.scheduleSafely(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (hasBackgroundSyncConfig()) {
-            BackgroundSync.runSoonSafely(this);
-        }
+        if (hasBackgroundSyncConfig()) BackgroundSync.runSoonSafely(this);
+        notifyWebPermissionState();
     }
 
     private boolean hasBackgroundSyncConfig() {
@@ -97,11 +91,20 @@ public class MainActivity extends Activity {
     }
 
     @JavascriptInterface
+    public boolean notificationsAllowed() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true;
+        return checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @JavascriptInterface
     public void requestNotifications() {
         runOnUiThread(() -> {
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                        && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                if (notificationsAllowed()) {
+                    notifyWebPermissionState();
+                    return;
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST);
                 }
             } catch (Throwable e) {
@@ -110,11 +113,24 @@ public class MainActivity extends Activity {
         });
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST) notifyWebPermissionState();
+    }
+
+    private void notifyWebPermissionState() {
+        if (webView == null) return;
+        final boolean allowed = notificationsAllowed();
+        webView.post(() -> webView.evaluateJavascript(
+                "window.nextMoveNotificationPermissionResult && window.nextMoveNotificationPermissionResult(" + allowed + ");",
+                null));
+    }
+
     @JavascriptInterface
     public void schedule(String id, String title, String body, String first, String interval) {
-        try {
-            scheduleNative(Long.parseLong(first), Long.parseLong(interval), this, id, title, body);
-        } catch (Throwable ignored) { }
+        try { scheduleNative(Long.parseLong(first), Long.parseLong(interval), this, id, title, body); }
+        catch (Throwable ignored) { }
     }
 
     @JavascriptInterface
@@ -124,9 +140,8 @@ public class MainActivity extends Activity {
 
     @JavascriptInterface
     public void test() {
-        try {
-            ReminderReceiver.showNotification(this, "NextMove", "Test reminder. The nagging machinery is operational.", "nextmove-test");
-        } catch (Throwable ignored) { }
+        try { ReminderReceiver.showNotification(this, "NextMove", "Test reminder. The nagging machinery is operational.", "nextmove-test"); }
+        catch (Throwable ignored) { }
     }
 
     @JavascriptInterface
@@ -158,9 +173,7 @@ public class MainActivity extends Activity {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, id.hashCode(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-        }
+        if (alarmManager != null) alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
     }
 
     public static void cancelNative(Context context, String id) {
