@@ -7,6 +7,7 @@
   <meta name="description" content="NextMove synced project checklist with due dates, priorities, next actions and reminders." />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="header-sync.css" />
   <title>NextMove</title>
 </head>
 <body>
@@ -18,7 +19,10 @@
         <p>Know what's next. Keep projects moving.</p>
       </div>
     </div>
-    <button id="notifyBtn" class="button secondary small">Enable reminders</button>
+    <div class="header-actions">
+      <button id="syncNowBtn" class="top-icon-btn" type="button" title="Sync now" aria-label="Sync now"><img src="icons/sync-icon.svg" alt="" /></button>
+      <button id="notifyBtn" class="button secondary small">Enable reminders</button>
+    </div>
   </header>
 
   <nav class="tabs" aria-label="Main navigation">
@@ -154,6 +158,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
+  <script src="sync-button.js"></script>
   <script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('service-worker.js').catch(console.warn);</script>
 </body>
 </html>
