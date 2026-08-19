@@ -39,10 +39,18 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Restore fixed NextMove signing key
+      - name: Restore NextMove v2 signing key
+        id: signing-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nextmove-v2-debug-signing-20260818
+
+      - name: Create v2 signing key on first build
+        if: steps.signing-cache.outputs.cache-hit != 'true'
         run: |
-          base64 -d android/signing/nextmove-release.keystore.b64 > android/signing/nextmove-release.keystore
-          keytool -list -keystore android/signing/nextmove-release.keystore -storepass nextmove2026 -alias nextmove >/dev/null
+          mkdir -p ~/.android
+          keytool -genkeypair -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=NextMove v2,O=NextMove,C=US'
 
       - name: Copy current web app into Android assets
         run: |
@@ -58,16 +66,16 @@ jobs:
           Path('android/app/src/main/res/drawable/nextmove_logo.png').write_bytes(base64.b64decode(m.group(1)))
           PY
 
-      - name: Build Android 16 APK
+      - name: Build clean NextMove v2 APK
         working-directory: android
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk NextMove_v1.8.2_BackgroundSync_Android16.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk NextMove_v2.0.0_Android16.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NextMove-v1.8.2-Android16
-          path: NextMove_v1.8.2_BackgroundSync_Android16.apk
+          name: NextMove-v2.0.0-Android16
+          path: NextMove_v2.0.0_Android16.apk
           retention-days: 90
