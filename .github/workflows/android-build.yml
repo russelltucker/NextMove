@@ -6,6 +6,7 @@ on:
     branches: [ main ]
     paths:
       - 'android/**'
+      - 'icons/**'
       - 'index.html'
       - 'app.js'
       - 'styles.css'
@@ -54,28 +55,20 @@ jobs:
 
       - name: Copy current web app into Android assets
         run: |
-          mkdir -p android/app/src/main/assets android/app/src/main/res/drawable
+          mkdir -p android/app/src/main/assets/icons
           cp index.html app.js styles.css manifest.webmanifest android/app/src/main/assets/
-          python3 - <<'PY'
-          from pathlib import Path
-          import re, base64
-          html = Path('index.html').read_text(encoding='utf-8')
-          m = re.search(r'data:image/png;base64,([^\"\']+)', html)
-          if not m:
-              raise SystemExit('Embedded NextMove PNG logo not found in index.html')
-          Path('android/app/src/main/res/drawable/nextmove_logo.png').write_bytes(base64.b64decode(m.group(1)))
-          PY
+          cp icons/nextmove-icon.svg android/app/src/main/assets/icons/nextmove-icon.svg
 
-      - name: Build clean NextMove v2 APK
+      - name: Build NextMove v2.0.1 APK
         working-directory: android
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk NextMove_v2.0.0_Android16.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk NextMove_v2.0.1_Android16.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NextMove-v2.0.0-Android16
-          path: NextMove_v2.0.0_Android16.apk
+          name: NextMove-v2.0.1-Android16
+          path: NextMove_v2.0.1_Android16.apk
           retention-days: 90
