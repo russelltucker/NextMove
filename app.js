@@ -79,5 +79,7 @@ $('cloudSignInBtn').onclick=()=>cloudSignIn().catch(e=>{setSyncStatus('Sign-in e
 $('cloudSignUpBtn').onclick=()=>cloudSignUp().catch(e=>{setSyncStatus('Account error','error');setSyncMeta(e.message);toast(e.message);});
 $('cloudSyncBtn').onclick=()=>syncCloud('manual');
 $('cloudSignOutBtn').onclick=cloudSignOut;
+function setupHeaderSync(){const btn=$('syncNowBtn');if(!btn)return;const icon=btn.querySelector('img');btn.onclick=async()=>{if(btn.disabled||cloudBusy)return;if(!navigator.onLine){toast('You are offline');return;}if(!validCloudConfig()||!getCloudSession().access_token){toast('Sign in to cloud sync first');return;}btn.disabled=true;btn.classList.remove('synced');btn.classList.add('syncing');btn.setAttribute('aria-busy','true');try{const ok=await syncCloud('header');if(ok){btn.classList.remove('syncing');btn.classList.add('synced');if(icon)icon.style.display='none';btn.dataset.syncLabel='Synced';await new Promise(r=>setTimeout(r,2000));}else{toast('Sync failed');}}finally{btn.classList.remove('syncing','synced');btn.removeAttribute('aria-busy');delete btn.dataset.syncLabel;if(icon)icon.style.display='';btn.disabled=false;}};}
 loadCloudFields();
+setupHeaderSync();
 if(IS_NATIVE){$('notifyBtn').textContent='Enable reminders';setTimeout(syncAllNativeReminders,700);}else if('Notification'in window&&Notification.permission==='granted')$('notifyBtn').textContent='Reminders on';renderAll();checkReminders();setTimeout(()=>syncCloud('startup'),500);
