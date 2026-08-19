@@ -10,6 +10,8 @@ on:
       - 'index.html'
       - 'app.js'
       - 'styles.css'
+      - 'header-sync.css'
+      - 'sync-button.js'
       - 'manifest.webmanifest'
       - '.github/workflows/android-build.yml'
 
@@ -50,10 +52,10 @@ jobs:
       - name: Copy current web app into Android assets
         run: |
           mkdir -p android/app/src/main/assets/icons
-          cp index.html app.js styles.css manifest.webmanifest android/app/src/main/assets/
-          cp icons/nextmove-icon.svg android/app/src/main/assets/icons/nextmove-icon.svg
+          cp index.html app.js styles.css header-sync.css sync-button.js manifest.webmanifest android/app/src/main/assets/
+          cp icons/nextmove-icon.svg icons/sync-icon.svg android/app/src/main/assets/icons/
 
-      - name: Build signed NextMove v2.0.2 APK
+      - name: Build signed NextMove v2.0.3 APK
         working-directory: android
         env:
           NEXTMOVE_KEYSTORE_PATH: nextmove-release.jks
@@ -63,11 +65,11 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/release/app-release.apk NextMove_v2.0.2_Android16.apk
+        run: cp android/app/build/outputs/apk/release/app-release.apk NextMove_v2.0.3_Android16.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NextMove-v2.0.2-Android16
-          path: NextMove_v2.0.2_Android16.apk
+          name: NextMove-v2.0.3-Android16
+          path: NextMove_v2.0.3_Android16.apk
           retention-days: 90
