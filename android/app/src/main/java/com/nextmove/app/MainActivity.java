@@ -98,6 +98,29 @@ public class MainActivity extends Activity {
         notifyWebPermissionState();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (!webReady || webView == null) {
+            super.onBackPressed();
+            return;
+        }
+
+        String script = "(()=>{"
+                + "const openDialog=[...document.querySelectorAll('dialog[open]')].at(-1);"
+                + "if(openDialog){openDialog.close();return 'handled';}"
+                + "const active=document.querySelector('.view.active');"
+                + "if(active&&active.id!=='dashboard'){"
+                + "const tab=[...document.querySelectorAll('.tab')].find(b=>b.dataset.tab==='dashboard');"
+                + "if(tab)tab.click();window.scrollTo({top:0,behavior:'smooth'});return 'handled';}"
+                + "return 'exit';})()";
+
+        webView.evaluateJavascript(script, value -> {
+            if ("\"exit\"".equals(value) || "null".equals(value)) {
+                MainActivity.super.onBackPressed();
+            }
+        });
+    }
+
     private void captureNavigation(Intent intent) {
         if (intent == null) return;
         String destination = intent.getStringExtra(EXTRA_DESTINATION);
