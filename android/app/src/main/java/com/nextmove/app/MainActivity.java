@@ -19,6 +19,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.window.OnBackInvokedDispatcher;
 
 public class MainActivity extends Activity {
     public static final String CHANNEL_ID = "nextmove_reminders";
@@ -78,6 +79,12 @@ public class MainActivity extends Activity {
         captureNavigation(getIntent());
         webView.loadUrl("file:///android_asset/index.html");
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    () -> handleBackNavigation(this::finish));
+        }
+
         try { createNotificationChannel(); } catch (Throwable ignored) { }
 
         if (hasBackgroundSyncConfig()) BackgroundSync.scheduleSafely(this);
@@ -98,10 +105,19 @@ public class MainActivity extends Activity {
         notifyWebPermissionState();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onBackPressed() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ is handled by OnBackInvokedDispatcher above.
+            return;
+        }
+        handleBackNavigation(() -> MainActivity.super.onBackPressed());
+    }
+
+    private void handleBackNavigation(Runnable exitAction) {
         if (!webReady || webView == null) {
-            super.onBackPressed();
+            exitAction.run();
             return;
         }
 
@@ -111,12 +127,12 @@ public class MainActivity extends Activity {
                 + "const active=document.querySelector('.view.active');"
                 + "if(active&&active.id!=='dashboard'){"
                 + "const tab=[...document.querySelectorAll('.tab')].find(b=>b.dataset.tab==='dashboard');"
-                + "if(tab)tab.click();window.scrollTo({top:0,behavior:'smooth'});return 'handled';}"
+                + "if(tab){tab.click();window.scrollTo({top:0,behavior:'smooth'});return 'handled';}}"
                 + "return 'exit';})()";
 
         webView.evaluateJavascript(script, value -> {
             if ("\"exit\"".equals(value) || "null".equals(value)) {
-                MainActivity.super.onBackPressed();
+                exitAction.run();
             }
         });
     }
