@@ -122,6 +122,7 @@ public class MainActivity extends Activity {
         if ("project".equals(destination)) {
             script = "(()=>{const id='" + escapedId + "';"
                     + "const tab=[...document.querySelectorAll('.tab')].find(b=>b.dataset.tab==='projects');if(tab)tab.click();"
+                    + "const df=document.getElementById('projectDueFilter');if(df)df.value='all';"
                     + "if(typeof renderProjects==='function')renderProjects();"
                     + "setTimeout(()=>{const marker=[...document.querySelectorAll('#projectList [data-id]')].find(e=>e.dataset.id===id);"
                     + "const card=marker&&marker.closest('.item-card');if(!card)return;"
