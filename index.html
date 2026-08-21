@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1c75dd" />
   <meta name="description" content="NextMove synced project checklist with due dates, priorities, next actions and reminders." />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=10" />
   <link rel="stylesheet" href="header-sync.css?v=7" />
   <title>NextMove</title>
 </head>
@@ -34,12 +34,25 @@
 
   <main>
     <section id="dashboard" class="view active">
-      <div class="summary-grid">
-        <article class="summary-card danger"><span id="overdueCount">0</span><small>Overdue</small></article>
-        <article class="summary-card warning"><span id="todayCount">0</span><small>Due today</small></article>
-        <article class="summary-card info"><span id="upcomingCount">0</span><small>Next 7 days</small></article>
-        <article class="summary-card"><span id="openCount">0</span><small>Open tasks</small></article>
+      <div class="dashboard-summary-group">
+        <h2 class="summary-group-title">Projects</h2>
+        <div class="summary-grid summary-grid-three">
+          <button class="summary-card summary-link danger" type="button" data-summary-kind="project" data-summary-filter="overdue"><span id="projectOverdueCount">0</span><small>Overdue</small></button>
+          <button class="summary-card summary-link warning" type="button" data-summary-kind="project" data-summary-filter="today"><span id="projectTodayCount">0</span><small>Due today</small></button>
+          <button class="summary-card summary-link info" type="button" data-summary-kind="project" data-summary-filter="upcoming"><span id="projectUpcomingCount">0</span><small>Next 7 days</small></button>
+        </div>
       </div>
+
+      <div class="dashboard-summary-group">
+        <h2 class="summary-group-title">Tasks</h2>
+        <div class="summary-grid summary-grid-three">
+          <button class="summary-card summary-link danger" type="button" data-summary-kind="task" data-summary-filter="overdue"><span id="taskOverdueCount">0</span><small>Overdue</small></button>
+          <button class="summary-card summary-link warning" type="button" data-summary-kind="task" data-summary-filter="today"><span id="taskTodayCount">0</span><small>Due today</small></button>
+          <button class="summary-card summary-link info" type="button" data-summary-kind="task" data-summary-filter="upcoming"><span id="taskUpcomingCount">0</span><small>Next 7 days</small></button>
+        </div>
+      </div>
+
+      <div class="legacy-summary-counts" aria-hidden="true"><span id="overdueCount">0</span><span id="todayCount">0</span><span id="upcomingCount">0</span><span id="openCount">0</span></div>
 
       <div class="section-heading">
         <div><h2>What needs attention</h2><p>Overdue first, because apparently deadlines are still a thing.</p></div>
@@ -56,6 +69,14 @@
         <div><h2>Projects</h2><p>One place for the goal, notes, and what happens next.</p></div>
         <button class="button primary" id="addProjectBtn">+ Project</button>
       </div>
+      <div class="filters card project-filter-bar">
+        <select id="projectDueFilter" aria-label="Filter projects by due date">
+          <option value="all">All projects</option>
+          <option value="overdue">Overdue</option>
+          <option value="today">Due today</option>
+          <option value="upcoming">Next 7 days</option>
+        </select>
+      </div>
       <div id="projectList" class="stack"></div>
     </section>
 
@@ -71,6 +92,7 @@
           <option value="all">All</option>
           <option value="overdue">Overdue</option>
           <option value="today">Due today</option>
+          <option value="upcoming">Next 7 days</option>
           <option value="completed">Completed</option>
         </select>
         <select id="taskPriorityFilter" aria-label="Filter by priority">
@@ -158,6 +180,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="app.js?v=7"></script>
+  <script src="dashboard-nav.js?v=1"></script>
   <script src="sync-button.js?v=7"></script>
   <script src="notification-permission.js?v=1"></script>
   <script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('service-worker.js').catch(console.warn);</script>
