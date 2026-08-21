@@ -18,11 +18,17 @@ import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
     public static final String CHANNEL_ID = "nextmove_reminders";
+    public static final String EXTRA_DESTINATION = "nextmove_destination";
+    public static final String EXTRA_TARGET_ID = "nextmove_target_id";
     private static final int NOTIFICATION_PERMISSION_REQUEST = 1001;
     private WebView webView;
+    private boolean webReady = false;
+    private String pendingDestination = "";
+    private String pendingTargetId = "";
 
     @Override
     public void onCreate(Bundle bundle) {
@@ -59,8 +65,17 @@ public class MainActivity extends Activity {
             }
         });
 
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                webReady = true;
+                deliverPendingNavigation();
+            }
+        });
+
         webView.addJavascriptInterface(this, "Android");
         setContentView(webView);
+        captureNavigation(getIntent());
         webView.loadUrl("file:///android_asset/index.html");
 
         try { createNotificationChannel(); } catch (Throwable ignored) { }
@@ -69,10 +84,63 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        captureNavigation(intent);
+        deliverPendingNavigation();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (hasBackgroundSyncConfig()) BackgroundSync.runSoonSafely(this);
         notifyWebPermissionState();
+    }
+
+    private void captureNavigation(Intent intent) {
+        if (intent == null) return;
+        String destination = intent.getStringExtra(EXTRA_DESTINATION);
+        String targetId = intent.getStringExtra(EXTRA_TARGET_ID);
+        if (destination == null || destination.isEmpty() || targetId == null || targetId.isEmpty()) return;
+        pendingDestination = destination;
+        pendingTargetId = targetId;
+        intent.removeExtra(EXTRA_DESTINATION);
+        intent.removeExtra(EXTRA_TARGET_ID);
+    }
+
+    private void deliverPendingNavigation() {
+        if (!webReady || webView == null || pendingDestination.isEmpty() || pendingTargetId.isEmpty()) return;
+
+        final String destination = pendingDestination;
+        final String targetId = pendingTargetId;
+        pendingDestination = "";
+        pendingTargetId = "";
+
+        String escapedId = jsString(targetId);
+        String script;
+        if ("project".equals(destination)) {
+            script = "(()=>{const id='" + escapedId + "';"
+                    + "if(typeof openProject==='function'&&typeof data!=='undefined'&&Array.isArray(data.projects)&&data.projects.some(p=>p.id===id))openProject(id);"
+                    + "})()";
+        } else if ("task".equals(destination)) {
+            script = "(()=>{const id='" + escapedId + "';"
+                    + "if(typeof openTask==='function'&&typeof data!=='undefined'&&Array.isArray(data.tasks)&&data.tasks.some(t=>t.id===id))openTask(id);"
+                    + "})()";
+        } else {
+            return;
+        }
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    private static String jsString(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\u2028", "\\u2028")
+                .replace("\u2029", "\\u2029");
     }
 
     private boolean hasBackgroundSyncConfig() {
