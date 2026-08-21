@@ -121,11 +121,29 @@ public class MainActivity extends Activity {
         String script;
         if ("project".equals(destination)) {
             script = "(()=>{const id='" + escapedId + "';"
-                    + "if(typeof openProject==='function'&&typeof data!=='undefined'&&Array.isArray(data.projects)&&data.projects.some(p=>p.id===id))openProject(id);"
+                    + "const tab=[...document.querySelectorAll('.tab')].find(b=>b.dataset.tab==='projects');if(tab)tab.click();"
+                    + "if(typeof renderProjects==='function')renderProjects();"
+                    + "setTimeout(()=>{const marker=[...document.querySelectorAll('#projectList [data-id]')].find(e=>e.dataset.id===id);"
+                    + "const card=marker&&marker.closest('.item-card');if(!card)return;"
+                    + "card.scrollIntoView({behavior:'smooth',block:'center'});"
+                    + "const oldOutline=card.style.outline,oldOffset=card.style.outlineOffset;"
+                    + "card.style.outline='3px solid #1c75dd';card.style.outlineOffset='3px';"
+                    + "setTimeout(()=>{card.style.outline=oldOutline;card.style.outlineOffset=oldOffset;},2600);},120);"
                     + "})()";
         } else if ("task".equals(destination)) {
             script = "(()=>{const id='" + escapedId + "';"
-                    + "if(typeof openTask==='function'&&typeof data!=='undefined'&&Array.isArray(data.tasks)&&data.tasks.some(t=>t.id===id))openTask(id);"
+                    + "const tab=[...document.querySelectorAll('.tab')].find(b=>b.dataset.tab==='tasks');if(tab)tab.click();"
+                    + "const pf=document.getElementById('taskProjectFilter');if(pf)pf.value='all';"
+                    + "const sf=document.getElementById('taskStatusFilter');if(sf)sf.value='all';"
+                    + "const pr=document.getElementById('taskPriorityFilter');if(pr)pr.value='all';"
+                    + "const af=document.getElementById('taskAssigneeFilter');if(af)af.value='';"
+                    + "if(typeof renderTasks==='function')renderTasks();"
+                    + "setTimeout(()=>{const marker=[...document.querySelectorAll('#taskList [data-id]')].find(e=>e.dataset.id===id);"
+                    + "const card=marker&&marker.closest('.item-card');if(!card)return;"
+                    + "card.scrollIntoView({behavior:'smooth',block:'center'});"
+                    + "const oldOutline=card.style.outline,oldOffset=card.style.outlineOffset;"
+                    + "card.style.outline='3px solid #1c75dd';card.style.outlineOffset='3px';"
+                    + "setTimeout(()=>{card.style.outline=oldOutline;card.style.outlineOffset=oldOffset;},2600);},120);"
                     + "})()";
         } else {
             return;
