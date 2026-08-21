@@ -1,1 +1,6 @@
-NextMove v1.7.1 PWA header-logo fix. Header logo is embedded directly in index.html; service-worker cache version bumped so installed PWAs update.
+NextMove
+========
+
+A lightweight project and task tracker with cloud sync and Android reminders.
+
+See SETUP.txt for setup and build instructions.
