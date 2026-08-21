@@ -8,8 +8,8 @@ android {
         applicationId 'com.russelltucker.nextmove'
         minSdk 26
         targetSdk 36
-        versionCode 10
-        versionName '2.0.9-test'
+        versionCode 11
+        versionName '2.0.10-test'
     }
 
     signingConfigs {
